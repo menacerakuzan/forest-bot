@@ -1,12 +1,12 @@
 """Оновлює data/archive_index.json — класифікує файли архіву, яких ще немає в індексі.
 
 Запуск: docker compose run --rm -v ./data:/app/data bot python -m forest_bot.build_index
+Працює в тимчасовій схемі PostgreSQL, тож дані бота не зачіпає.
 """
 
 import asyncio
 import logging
-import tempfile
-from pathlib import Path
+import uuid
 
 from forest_bot.config import Settings
 from forest_bot.db import Database
@@ -22,15 +22,16 @@ async def main() -> None:
         fallback_model=settings.groq_model_fallback,
         max_retries=8,
     )
-    with tempfile.TemporaryDirectory() as tmp:
-        db = await Database.open(Path(tmp) / "index.db")
-        try:
-            ingestor = Ingestor(db, llm, model=settings.groq_model_answer)
-            await ingestor.load_archive(settings.archive_dir, settings.archive_index_path)
-            for doc in await db.active_documents():
-                print(f"{doc.scope.label:34} {doc.title}")
-        finally:
-            await db.close()
+    schema = f"build_index_{uuid.uuid4().hex[:8]}"
+    db = await Database.open(settings.database_url, schema=schema)
+    try:
+        ingestor = Ingestor(db, llm, model=settings.groq_model_answer)
+        await ingestor.load_archive(settings.archive_dir, settings.archive_index_path)
+        for doc in await db.active_documents():
+            print(f"{doc.scope.label:34} {doc.title}")
+    finally:
+        await db.drop_schema(schema)
+        await db.close()
 
 
 if __name__ == "__main__":

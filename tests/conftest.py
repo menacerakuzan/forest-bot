@@ -1,3 +1,5 @@
+import os
+import uuid
 from collections import defaultdict, deque
 from collections.abc import AsyncIterator
 from typing import Any
@@ -36,11 +38,21 @@ def llm() -> FakeLLM:
     return FakeLLM()
 
 
+TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+
+
 @pytest.fixture
 async def db() -> AsyncIterator[Database]:
-    database = await Database.open(":memory:")
-    yield database
-    await database.close()
+    """Справжній PostgreSQL; кожен тест працює в окремій схемі, яку потім видаляємо."""
+    if not TEST_DATABASE_URL:
+        pytest.skip("TEST_DATABASE_URL не задано — тести з базою пропущено")
+    schema = f"test_{uuid.uuid4().hex[:12]}"
+    database = await Database.open(TEST_DATABASE_URL, schema=schema)
+    try:
+        yield database
+    finally:
+        await database.drop_schema(schema)
+        await database.close()
 
 
 async def add_doc(

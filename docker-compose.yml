@@ -1,4 +1,19 @@
 services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-forest}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-forest}
+      POSTGRES_DB: ${POSTGRES_DB:-forest}
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
   bot:
     build: .
     image: forest-bot
@@ -7,8 +22,10 @@ services:
     environment:
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?встановіть TELEGRAM_BOT_TOKEN у .env}
       GROQ_API_KEY: ${GROQ_API_KEY:?встановіть GROQ_API_KEY у .env}
-    volumes:
-      - forest-data:/data
+      DATABASE_URL: postgresql://${POSTGRES_USER:-forest}:${POSTGRES_PASSWORD:-forest}@db:5432/${POSTGRES_DB:-forest}
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
-  forest-data:
+  pg-data:

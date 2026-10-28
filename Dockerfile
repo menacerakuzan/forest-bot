@@ -18,7 +18,6 @@ FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1 \
     PATH="/app/.venv/bin:$PATH" \
-    DATABASE_PATH=/data/forest.db \
     ARCHIVE_DIR=/app/data/archive \
     ARCHIVE_INDEX_PATH=/app/data/archive_index.json
 
@@ -26,13 +25,11 @@ ENV PYTHONUNBUFFERED=1 \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-ukr \
     && rm -rf /var/lib/apt/lists/* \
-    && useradd --create-home --uid 1000 forest \
-    && mkdir /data && chown forest /data
+    && useradd --create-home --uid 1000 forest
 
 WORKDIR /app
 COPY --from=builder /app/.venv /app/.venv
 COPY data ./data
 
 USER forest
-VOLUME ["/data"]
 CMD ["forest-bot"]

@@ -65,15 +65,14 @@ async def cmd_name(message: Message, state: FSMContext) -> None:
 
 
 @router.message(Command("my_docs"))
-async def cmd_my_docs(message: Message, db: Database) -> None:
+async def cmd_my_docs(message: Message, db: Database, qa: QAService) -> None:
     assert message.from_user
     documents = await db.user_documents(message.from_user.id)
     if not documents:
         await message.answer(texts.MY_DOCS_EMPTY)
         return
     lines = [
-        f"• «{html.escape(d.title)}» — {html.escape(d.scope.label)}, "
-        f"{d.created_at.strftime('%d.%m.%Y')}"
+        f"• «{html.escape(d.title)}» — {html.escape(d.scope.label)}, {qa.local_date(d.created_at)}"
         for d in documents
     ]
     await message.answer(

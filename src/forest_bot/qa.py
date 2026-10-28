@@ -90,6 +90,10 @@ class QAService:
         self._fast_model = fast_model
         self._tz = ZoneInfo(timezone)
 
+    def local_date(self, moment: datetime) -> str:
+        """Дата в часовому поясі лісу (у базі час зберігається в UTC)."""
+        return _format_date(moment, self._tz)
+
     async def ask(self, question: str, history: str = "") -> Reply:
         places = detect_places(question)[:MAX_PLACES_PER_QUESTION]
         if not places:

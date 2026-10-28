@@ -13,8 +13,9 @@ docker compose up -d --build
 ```
 
 Більше нічого не потрібно: «Лісовий архів» (78 документів) уже в образі, Tesseract для сканів —
-теж. Під час першого старту бот читає архів (~1 хв, разом з OCR сканів) і зберігає все в SQLite у
-томі `forest-data`, тож наступні старти миттєві.
+теж. Docker Compose піднімає два сервіси: **PostgreSQL** і бота (бот стартує, щойно база готова).
+Під час першого старту бот читає архів (~1 хв, разом з OCR сканів) і зберігає все в PostgreSQL
+(том `pg-data`), тож наступні старти миттєві.
 
 ## Детальна інструкція
 
@@ -108,6 +109,7 @@ git pull && docker compose up -d --build   # оновити до нової ве
 | `GROQ_MODEL_ANSWER` | ні | `openai/gpt-oss-120b` — відповіді й класифікація документів |
 | `GROQ_MODEL_FAST` | ні | `openai/gpt-oss-20b` — відбір доречних документів |
 | `GROQ_MODEL_FALLBACK` | ні | `qwen/qwen3.8-27b` — коли основна модель упирається в ліміт |
+| `POSTGRES_USER` / `POSTGRES_PASSWORD` / `POSTGRES_DB` | ні | `forest` / `forest` / `forest` — облікові дані бази в Compose |
 | `TIMEZONE` | ні | `Europe/Kyiv` |
 | `SETUP_BOT_PROFILE` | ні | `true` — бот сам ставить собі назву, опис і меню команд |
 
@@ -142,7 +144,7 @@ git pull && docker compose up -d --build   # оновити до нової ве
 
 ```
 документ ─► текст (pypdf / python-docx / OCR сканів) ─► LLM: назва, рівень, місце, опис
-         ─► нова версія наявного? ─► SQLite
+         ─► нова версія наявного? ─► PostgreSQL
 
 питання ─► місце з тексту ─► документи лише застосовних рівнів
         ─► LLM обирає доречні за каталогом (+ документи тієї ж теми з інших рівнів)
@@ -170,9 +172,14 @@ git pull && docker compose up -d --build   # оновити до нової ве
 
 ## Розробка
 
+Тести працюють зі справжнім PostgreSQL: кожен тест отримує окрему схему, яку потім видаляє.
+
 ```bash
 uv sync
-uv run pytest          # 47 тестів, LLM підміняється фейком
+docker run -d --name forest-test-pg -p 127.0.0.1:54329:5432 \
+  -e POSTGRES_USER=test -e POSTGRES_PASSWORD=test -e POSTGRES_DB=test postgres:17-alpine
+export TEST_DATABASE_URL=postgresql://test:test@127.0.0.1:54329/test
+uv run pytest          # 50 тестів; LLM підміняється фейком
 uv run ruff check . && uv run ruff format --check . && uv run mypy src
 ```
 
@@ -183,6 +190,6 @@ src/forest_bot/
   ingest.py      класифікація документів, заміна версій, завантаження архіву
   qa.py          відбір документів і відповідь з джерелами
   llm.py         обгортка Groq: JSON, валідація, запасна модель
-  db.py          SQLite (aiosqlite)
+  db.py          PostgreSQL (asyncpg, пул з'єднань)
   bot/           aiogram 3: обробники, клавіатури, тексти
 ```

@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from forest_bot.db import Database
 from forest_bot.places import FOREST, Level, Scope
 from forest_bot.qa import (
@@ -137,6 +139,12 @@ async def test_same_topic_documents_from_other_levels_are_added(db: Database) ->
         "Як утеплити рукавичку біля річки",
         "Як утеплити рукавичку в листяному лісі",
     ]
+
+
+def test_dates_are_shown_in_forest_timezone(db: Database, llm: FakeLLM) -> None:
+    # 22:30 UTC 28 жовтня — це вже 29 жовтня в Києві.
+    moment = datetime(2026, 10, 28, 22, 30, tzinfo=UTC)
+    assert service(db, llm).local_date(moment) == "29.10.2026"
 
 
 def test_memory_keeps_only_recent_questions() -> None:

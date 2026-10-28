@@ -51,7 +51,7 @@ async def main() -> None:
     )
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
-    db = await Database.open(settings.database_path)
+    db = await Database.open(settings.database_url)
     llm = LLM(settings.groq_api_key.get_secret_value(), fallback_model=settings.groq_model_fallback)
     ingestor = Ingestor(db, llm, model=settings.groq_model_answer)
     await ingestor.load_archive(settings.archive_dir, settings.archive_index_path)

@@ -148,3 +148,14 @@ async def test_changed_archive_file_replaces_previous_version(
     await ingestor.load_archive(archive, index)
 
     assert [d.content for d in await db.active_documents()] == ["Внесок — 6 жолудів"]
+
+
+async def test_renaming_updates_author_of_existing_documents(db: Database) -> None:
+    await db.set_user_name(5, "Ілля")
+    doc_id = await add_doc(db, "Порада", "Текст", DUB, source="telegram", owner=(5, "Ілля"))
+
+    await db.set_user_name(5, "Ілля Довженко")
+
+    assert await db.get_user_name(5) == "Ілля Довженко"
+    document = await db.get_document(doc_id)
+    assert document is not None and document.owner_name == "Ілля Довженко"

@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     # Запасна модель з окремим лімітом — коли основна впирається в rate limit.
     groq_model_fallback: str = "qwen/qwen3.8-27b"
 
-    database_path: Path = Path("var/forest.db")
+    database_url: str = "postgresql://forest:forest@localhost:5432/forest"
     archive_dir: Path = Path("data/archive")
     archive_index_path: Path = Path("data/archive_index.json")
 
