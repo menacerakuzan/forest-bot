@@ -1,0 +1,14 @@
+services:
+  bot:
+    build: .
+    image: forest-bot
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?встановіть TELEGRAM_BOT_TOKEN у .env}
+      GROQ_API_KEY: ${GROQ_API_KEY:?встановіть GROQ_API_KEY у .env}
+    volumes:
+      - forest-data:/data
+
+volumes:
+  forest-data:
